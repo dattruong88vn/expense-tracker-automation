@@ -72,9 +72,10 @@ The continuous deployment pipeline deploys each build to staging, runs the compl
 
 Rules:
 
-- Every smoke test carries `@smoke` and exactly one of `@auth` or `@prod-safe`.
-- A test carrying `@auth` never carries `@prod-safe`; such a test is rejected in review.
-- A `@prod-safe` test creates no user and consumes no rate-limited quota.
+- Every smoke test carries `@smoke`; a smoke test that signs in also carries `@auth`.
+- Only tests carrying `@prod-safe` run against production; a smoke test without it runs on staging only.
+- `@auth` and `@prod-safe` are mutually exclusive; a test carrying both is rejected in review.
+- A `@prod-safe` test requires no sign-in, creates no data and consumes no rate-limited quota.
 
 | Scenario                                                  | Tags                |
 | --------------------------------------------------------- | ------------------- |
