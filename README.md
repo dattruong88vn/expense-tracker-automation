@@ -64,7 +64,33 @@ With `CI` set, failed tests are retried twice, a trace is recorded on the first 
 
 ## Smoke suite
 
-Tests tagged `@smoke` run after every deployment. The smoke suite initially comprises API-13 (`GET /health` returns 200) and is extended with each Story.
+The continuous deployment pipeline deploys each build to staging, runs the complete smoke suite there, promotes the same build to production and then runs only the production-safe subset. The test sign-in mechanism (ADR-0005) is enabled on staging and is never mounted in production, so tests that require a signed-in user cannot run against production. The nightly run of the full suites also targets staging.
+
+| Tag          | Meaning                                                                          | Combined with |
+| ------------ | -------------------------------------------------------------------------------- | ------------- |
+| `@smoke`     | Runs after every deployment to staging                                           | always        |
+| `@auth`      | Obtains a session through the test sign-in mechanism; never runs on production   | `@smoke`      |
+| `@prod-safe` | Requires no sign-in and changes no data; also runs on production after promotion | `@smoke`      |
+
+Rules:
+
+- Every smoke test carries `@smoke`; a smoke test that signs in also carries `@auth`.
+- Only tests carrying `@prod-safe` run against production; a smoke test without it runs on staging only.
+- `@auth` and `@prod-safe` are mutually exclusive; a test carrying both is rejected in review.
+- A `@prod-safe` test requires no sign-in, creates no data and consumes no rate-limited quota.
+
+| Scenario                                                  | Tags                |
+| --------------------------------------------------------- | ------------------- |
+| API-13                                                    | `@smoke @prod-safe` |
+| API-02, assertion that the test sign-in route returns 404 | `@smoke @prod-safe` |
+| UI-01, UI-03, API-01, API-05, API-10                      | `@smoke @auth`      |
+
+Scenarios are tagged as their Stories are delivered.
+
+```bash
+npm run test:smoke        # staging: complete smoke suite (--grep @smoke)
+npm run test:smoke:prod   # production: --grep @prod-safe --grep-invert @auth
+```
 
 ## Quality checks
 
