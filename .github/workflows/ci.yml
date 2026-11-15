@@ -1,0 +1,54 @@
+name: ci
+
+on:
+  pull_request:
+    # 'edited' re-runs the title check when the PR title changes.
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    # Stable job name: registered as the required status check "test" on main.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Static checks only: no browsers are installed and no deployed target is contacted.
+    # The smoke suite runs after deployment (CD), and the full suites run on a schedule.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: List tests (validates specs and configuration without running them)
+        run: npx playwright test --list
+
+  pr-title:
+    # Required check: the PR title is a Conventional Commit containing ET-<n>. Dependabot PRs are exempt (the job is skipped, which satisfies the check).
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check PR title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|chore|docs|test|ci|build|refactor|perf|style|revert)(\([a-z0-9._/-]+\))?!?: .*\bET-[0-9]+\b'
+          if printf '%s' "$TITLE" | grep -Eq "$pattern"; then
+            echo "PR title OK: $TITLE"
+          else
+            echo "::error title=PR title::\"$TITLE\" must be a Conventional Commit containing ET-<n>, for example \"feat(api): ET-12 record transaction\"."
+            exit 1
+          fi
