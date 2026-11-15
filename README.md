@@ -1,5 +1,7 @@
 # expense-tracker-automation
 
+[![ci](https://github.com/dattruong88vn/expense-tracker-automation/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dattruong88vn/expense-tracker-automation/actions/workflows/ci.yml)
+
 Black-box automation suites for Expense Tracker, executed with Playwright Test against a deployed (or locally running) environment. The repository holds two independent suites that share one runner and one report:
 
 | Suite          | Directory    | Playwright project                           | Target     | Browser                             |
