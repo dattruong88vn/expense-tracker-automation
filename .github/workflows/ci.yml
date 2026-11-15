@@ -22,7 +22,7 @@ jobs:
     # Static checks only: no browsers are installed and no deployed target is contacted.
     # The smoke suite runs after deployment (CD), and the full suites run on a schedule.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
